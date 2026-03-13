@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
@@ -19,46 +20,87 @@ public_users.post("/register", (req, res) => {
     return res.status(404).json({message: "Unable to register user."});
 });
 
-// Get the book list available in the shop
+// Get the book list available in the shop (Task 10 - Promise)
 public_users.get('/', function (req, res) {
-    res.send(JSON.stringify(books, null, 4));
+    new Promise((resolve, reject) => {
+        if (books) {
+            resolve(books);
+        } else {
+            reject("No books found");
+        }
+    })
+    .then((books) => {
+        res.send(JSON.stringify(books, null, 4));
+    })
+    .catch((err) => {
+        res.status(404).json({message: err});
+    });
 });
 
-// Get book details based on ISBN
-public_users.get('/isbn/:isbn', function (req, res) {
+// Get book details based on ISBN (Task 11 - Async/Await + Axios)
+public_users.get('/isbn/:isbn', async function (req, res) {
     const isbn = req.params.isbn;
-    res.send(books[isbn]);
+    try {
+        const response = await axios.get(`http://localhost:${process.env.PORT || 5000}/`, {
+            timeout: 5000
+        });
+        const allBooks = response.data;
+        const book = allBooks[isbn];
+        if (book) {
+            res.send(book);
+        } else {
+            res.status(404).json({message: "Book not found"});
+        }
+    } catch (err) {
+        res.status(500).json({message: "Error fetching book", error: err.message});
+    }
 });
 
-// Get book details based on author
-public_users.get('/author/:author', function (req, res) {
+// Get book details based on author (Task 12 - Async/Await + Axios)
+public_users.get('/author/:author', async function (req, res) {
     const author = req.params.author;
-    let booksByAuthor = [];
-    for (let key in books) {
-        if (books[key].author === author) {
-            booksByAuthor.push(books[key]);
+    try {
+        const response = await axios.get(`http://localhost:${process.env.PORT || 5000}/`, {
+            timeout: 5000
+        });
+        const allBooks = response.data;
+        let booksByAuthor = [];
+        for (let key in allBooks) {
+            if (allBooks[key].author === author) {
+                booksByAuthor.push(allBooks[key]);
+            }
         }
-    }
-    if (booksByAuthor.length > 0) {
-        res.send(booksByAuthor);
-    } else {
-        res.status(404).json({message: "No books found for this author"});
+        if (booksByAuthor.length > 0) {
+            res.send(booksByAuthor);
+        } else {
+            res.status(404).json({message: "No books found for this author"});
+        }
+    } catch (err) {
+        res.status(500).json({message: "Error fetching books", error: err.message});
     }
 });
 
-// Get all books based on title
-public_users.get('/title/:title', function (req, res) {
+// Get all books based on title (Task 13 - Async/Await + Axios)
+public_users.get('/title/:title', async function (req, res) {
     const title = req.params.title;
-    let booksByTitle = [];
-    for (let key in books) {
-        if (books[key].title === title) {
-            booksByTitle.push(books[key]);
+    try {
+        const response = await axios.get(`http://localhost:${process.env.PORT || 5000}/`, {
+            timeout: 5000
+        });
+        const allBooks = response.data;
+        let booksByTitle = [];
+        for (let key in allBooks) {
+            if (allBooks[key].title === title) {
+                booksByTitle.push(allBooks[key]);
+            }
         }
-    }
-    if (booksByTitle.length > 0) {
-        res.send(booksByTitle);
-    } else {
-        res.status(404).json({message: "No books found with this title"});
+        if (booksByTitle.length > 0) {
+            res.send(booksByTitle);
+        } else {
+            res.status(404).json({message: "No books found with this title"});
+        }
+    } catch (err) {
+        res.status(500).json({message: "Error fetching books", error: err.message});
     }
 });
 
